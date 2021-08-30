@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+
+    chat-service-db:
+        image: mysql:5.7.20
+        container_name: chat-service-db
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_DATABASE: db
+        ports:
+            - "7200:3306"
+        # volumes: 
+        #     - ./chat-service-db:/var/lib/mysql
+
+    users-service-db:
+        image: mysql:5.7.20
+        container_name: users-service-db
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_DATABASE: db
+        ports:
+            - "7201:3306"
+        # volumes: 
+        #     - ./users-service-db:/var/lib/mysql
+
+    users-service:
+        build:
+          context: ./users-service
+        container_name: users-service
+        ports:
+            - "7101:7101"
+        depends_on:
+            - users-service-db
+
+    chat-service:
+        build: 
+          context: ./chat-service
+        container_name: chat-service
+        ports:
+            - "7100:7100"
+        depends_on:
+            - chat-service-db
+
+    api-gateway:
+        build: 
+          context: ./api-gateway
+        container_name: api-gateway
+        ports:
+            - "7000:7000"
+
+    phpmyadmin:
+        image: phpmyadmin
+        container_name: phpmyadmin
+        links:
+            - users-service-db
+            - chat-service-db
+        depends_on:
+            - users-service-db
+            - chat-service-db
+        ports:
+            - "7300:80"
+        volumes:
+            - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
+
+    chat-app:
+        build:
+          context: ./chat-app
+        container_name: chat-app
+        ports:
+          - 7001:7001
+        depends_on:
+          - api-gateway
